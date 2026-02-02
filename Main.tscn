@@ -5,8 +5,18 @@
 [node name="Node2D" type="Node2D" unique_id=1163737763]
 script = ExtResource("1_glv2v")
 
-[node name="TextureRect" type="TextureRect" parent="." unique_id=1255442256]
+[node name="TextureRect1" type="TextureRect" parent="." unique_id=1255442256]
 texture_filter = 1
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 34.0
+offset_top = 11.0
+offset_right = 74.0
+offset_bottom = 51.0
+scale = Vector2(3, 3)
+
+[node name="TextureRect2" type="TextureRect" parent="." unique_id=1641787898]
+texture_filter = 1
+offset_left = 42.0
+offset_top = 192.0
+offset_right = 82.0
+offset_bottom = 232.0
 scale = Vector2(3, 3)

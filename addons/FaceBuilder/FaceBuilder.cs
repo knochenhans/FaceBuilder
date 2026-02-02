@@ -6,6 +6,7 @@ public class FaceBuilder
     Dictionary<string, Array<Texture2D>> FaceParts = [];
     Array<Variant> PartsOrder = null;
     Array<Texture2D> RandomFaceParts = [];
+    Dictionary<string, int> PartIndices = [];
 
     public FaceBuilder(string resourcesPath, string definitionFile = "")
     {
@@ -15,10 +16,50 @@ public class FaceBuilder
         PartsOrder = definition.ContainsKey("order") ? (Array<Variant>)definition["order"] : null;
     }
 
+    private void ResetRandomFaceParts()
+    {
+        RandomFaceParts.Clear();
+        PartIndices.Clear();
+    }
+
     public Texture2D BuildRandomFace()
     {
+        ResetRandomFaceParts();
         var faceParts = GetRandomFaceParts();
         return CombineTextures(faceParts);
+    }
+
+    public Dictionary<string, int> GetCurrentPartIndices()
+    {
+        return PartIndices;
+    }
+
+    public Texture2D BuildFaceByIndices(Dictionary<string, int> indices)
+    {
+        var selectedParts = GetFacePartsByIndices(indices);
+        return CombineTextures(selectedParts);
+    }
+
+    private Array<Texture2D> GetFacePartsByIndices(Dictionary<string, int> indices)
+    {
+        Array<Texture2D> selectedParts = [];
+
+        foreach (var kvp in indices)
+        {
+            string partName = kvp.Key;
+            int index = kvp.Value;
+
+            if (FaceParts.ContainsKey(partName))
+            {
+                var texturesList = FaceParts[partName];
+                if (index >= 0 && index < texturesList.Count)
+                {
+                    selectedParts.Add(texturesList[index]);
+                }
+            }
+        }
+
+        return selectedParts;
     }
 
     private Array<Texture2D> GetRandomFaceParts()
@@ -35,6 +76,7 @@ public class FaceBuilder
                     {
                         var randomIndex = GD.Randi() % texturesList.Count;
                         RandomFaceParts.Add(texturesList[(int)randomIndex]);
+                        PartIndices[partName] = (int)randomIndex;
                     }
                 }
             }
@@ -48,6 +90,7 @@ public class FaceBuilder
                 {
                     var randomIndex = GD.Randi() % texturesList.Count;
                     RandomFaceParts.Add(texturesList[(int)randomIndex]);
+                    PartIndices[kvp.Key] = (int)randomIndex;
                 }
             }
         }
@@ -65,6 +108,18 @@ public class FaceBuilder
 
         numberPart = input[index..];
         return input[..index];
+    }
+
+    public Dictionary<string, int> GetFacePartCounts()
+    {
+        Dictionary<string, int> partCounts = [];
+
+        foreach (var kvp in FaceParts)
+        {
+            partCounts[kvp.Key] = kvp.Value.Count;
+        }
+
+        return partCounts;
     }
 
     private Dictionary<string, Texture2D> GetTextureFromDirectory(string path)
