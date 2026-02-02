@@ -3,6 +3,10 @@ using Godot.Collections;
 
 public class FaceBuilder
 {
+    readonly Dictionary<string, Array<Texture2D>> FaceParts = [];
+    readonly Array<Variant> PartsOrder = null;
+    readonly Array<Texture2D> RandomFaceParts = [];
+    readonly Dictionary<string, int> PartIndices = [];
     readonly int PartNameIndex = 1;
 
     public FaceBuilder(string resourcesPath, string definitionFile, int partNameNumber = 1)
