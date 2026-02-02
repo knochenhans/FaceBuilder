@@ -3,13 +3,11 @@ using Godot.Collections;
 
 public class FaceBuilder
 {
-    Dictionary<string, Array<Texture2D>> FaceParts = [];
-    Array<Variant> PartsOrder = null;
-    Array<Texture2D> RandomFaceParts = [];
-    Dictionary<string, int> PartIndices = [];
+    readonly int PartNameIndex = 1;
 
-    public FaceBuilder(string resourcesPath, string definitionFile = "")
+    public FaceBuilder(string resourcesPath, string definitionFile, int partNameNumber = 1)
     {
+        PartNameIndex = partNameNumber;
         var textures = GetTextureFromDirectory(resourcesPath);
         FaceParts = GetTexturesByFacePart(textures);
         var definition = LoadFaceDefinition(definitionFile);
@@ -168,10 +166,8 @@ public class FaceBuilder
             var texture = kvp.Value;
 
             var parts = fileName.Split('_');
-            if (parts.Length != 2)
-                continue;
 
-            var partRaw = parts[1];
+            var partRaw = parts[PartNameIndex];
             var partName = SplitAlpha(partRaw, out _);
             if (!faceParts.ContainsKey(partName))
                 faceParts[partName] = [];
