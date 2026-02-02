@@ -46,21 +46,20 @@ public class FaceBuilder
     {
         Array<Texture2D> selectedParts = [];
 
-        foreach (var kvp in indices)
+        if (PartsOrder != null)
         {
-            string partName = kvp.Key;
-            int index = kvp.Value;
-
-            if (FaceParts.ContainsKey(partName))
+            foreach (var partVariant in PartsOrder)
             {
-                var texturesList = FaceParts[partName];
-                if (index >= 0 && index < texturesList.Count)
+                string partName = partVariant.ToString();
+                if (indices.ContainsKey(partName) && FaceParts.ContainsKey(partName))
                 {
-                    selectedParts.Add(texturesList[index]);
+                    var texturesList = FaceParts[partName];
+                    int index = indices[partName];
+                    if (index >= 0 && index < texturesList.Count)
+                        selectedParts.Add(texturesList[index]);
                 }
             }
         }
-
         return selectedParts;
     }
 
