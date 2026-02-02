@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.static-texture-split-layer"
+type="PortableCompressedTexture2D"
+uid="uid://e0pr1micthr4"
+path="res://.godot/imported/face1_head3.ase_layer_tex-fefb94b2a130d270eaa0c6c710ca8e27.res"
+
+[deps]
+
+source_file="res://Resources/Images/Layers/face1_head3.ase_layer_tex"
+dest_files=["res://.godot/imported/face1_head3.ase_layer_tex-fefb94b2a130d270eaa0c6c710ca8e27.res"]
+
+[params]
+

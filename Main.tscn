@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://u872wuc3s080"]
+
+[ext_resource type="Script" uid="uid://iaqcectxagmn" path="res://Main.cs" id="1_glv2v"]
+
+[node name="Node2D" type="Node2D" unique_id=1163737763]
+script = ExtResource("1_glv2v")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1255442256]
+texture_filter = 1
+offset_right = 40.0
+offset_bottom = 40.0
+scale = Vector2(3, 3)
