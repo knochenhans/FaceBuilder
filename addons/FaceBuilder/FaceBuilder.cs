@@ -170,8 +170,10 @@ public class FaceBuilder
 
             var parts = fileName.Split('_');
 
-            var partRaw = parts[PartNameIndex];
-            var partName = SplitAlpha(partRaw, out _);
+            // var partRaw = parts[PartNameIndex];
+            // var partName = SplitAlpha(partRaw, out _);
+
+            var partName = parts[PartNameIndex];
             if (!faceParts.ContainsKey(partName))
                 faceParts[partName] = [];
             faceParts[partName].Add(texture);
