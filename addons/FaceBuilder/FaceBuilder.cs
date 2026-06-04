@@ -1,105 +1,204 @@
+using System;
+using System.Linq;
 using Godot;
 using Godot.Collections;
+using Microsoft.VisualBasic;
+
+public partial class FacePartConfig(string name, int maxIndex) : GodotObject
+{
+    public string Name = name;
+    public string VariationName = name;
+    public int Index = 0;
+    public int MaxIndex = maxIndex;
+    public bool Visible = false;
+
+    public void Next()
+    {
+        Index = (Index + 1) % (MaxIndex + 1);
+    }
+
+    public void Previous()
+    {
+        Index--;
+
+        if (Index < 0)
+            Index = MaxIndex;
+    }
+}
+
+public partial class FaceTextureEntry(Texture2D texture, string variationName) : GodotObject
+{
+    public Texture2D Texture = texture;
+    public string VariationName = variationName;
+}
 
 public class FaceBuilder
 {
-    readonly Dictionary<string, Array<Texture2D>> FaceParts = [];
-    readonly Array<Variant> PartsOrder = null;
-    readonly Array<Texture2D> RandomFaceParts = [];
-    readonly Dictionary<string, int> PartIndices = [];
-    readonly int PartNameIndex = 1;
+    Array<Variant> PartsOrder = null;
 
-    public FaceBuilder(string resourcesPath, string definitionFile, int partNameNumber = 1)
+    readonly Dictionary<string, FacePartConfig> Parts = [];
+    readonly Dictionary<string, Array<FaceTextureEntry>> TexturesByPart = [];
+
+    readonly int PartNameStartIndex = 0;
+
+    public FaceBuilder(string resourcesPath, int partNameStartIndex = 1)
     {
-        PartNameIndex = partNameNumber;
-        var textures = GetTextureFromDirectory(resourcesPath);
-        FaceParts = GetTexturesByFacePart(textures);
-        var definition = LoadFaceDefinition(definitionFile);
-        PartsOrder = definition.ContainsKey("order") ? (Array<Variant>)definition["order"] : null;
+        PartNameStartIndex = partNameStartIndex;
+        TexturesByPart = GetTexturesByFacePart(GetTexturesFromDirectory(resourcesPath));
+        CreatePartConfigs();
     }
 
-    private void ResetRandomFaceParts()
+    private void CreatePartConfigs()
     {
-        RandomFaceParts.Clear();
-        PartIndices.Clear();
+        Parts.Clear();
+
+        foreach (var (partName, textures) in TexturesByPart)
+            Parts[partName] = new FacePartConfig(partName, textures.Count - 1);
     }
 
-    public Texture2D BuildRandomFace()
+    private FacePartConfig FindPart(string name)
     {
-        ResetRandomFaceParts();
-        var faceParts = GetRandomFaceParts();
-        return CombineTextures(faceParts);
+        if (Parts.TryGetValue(name, out var part))
+            return part;
+
+        return null;
     }
 
-    public Dictionary<string, int> GetCurrentPartIndices()
+    public void Randomize()
     {
-        return PartIndices;
+        foreach (var part in Parts.Values)
+            part.Index = (int)(GD.Randi() % (uint)(part.MaxIndex + 1));
     }
 
-    public Texture2D BuildFaceByIndices(Dictionary<string, int> indices)
+    public Dictionary<string, int> GetFaceDefinition()
     {
-        var selectedParts = GetFacePartsByIndices(indices);
-        return CombineTextures(selectedParts);
-    }
+        Dictionary<string, int> result = [];
 
-    private Array<Texture2D> GetFacePartsByIndices(Dictionary<string, int> indices)
-    {
-        Array<Texture2D> selectedParts = [];
-
-        if (PartsOrder != null)
+        foreach (var part in Parts)
         {
-            foreach (var partVariant in PartsOrder)
+            if (part.Value.Visible)
+                result[part.Key] = part.Value.Index;
+        }
+
+        return result;
+    }
+
+    public void SetFaceDefinition(Dictionary<string, int> definition)
+    {
+        ResetParts();
+
+        foreach (var (name, index) in definition)
+        {
+            var part = FindPart(name);
+            if (part != null)
             {
-                string partName = partVariant.ToString();
-                if (indices.ContainsKey(partName) && FaceParts.ContainsKey(partName))
-                {
-                    var texturesList = FaceParts[partName];
-                    int index = indices[partName];
-                    if (index >= 0 && index < texturesList.Count)
-                        selectedParts.Add(texturesList[index]);
-                }
+                part.Visible = true;
+                part.Index = index;
             }
         }
-        return selectedParts;
     }
 
-    private Array<Texture2D> GetRandomFaceParts()
+    private void ResetParts()
     {
-        if (PartsOrder != null)
+        foreach (var part in Parts.Values)
         {
-            foreach (var partVariant in PartsOrder)
+            part.Visible = false;
+            part.Index = 0;
+        }
+    }
+
+    public Texture2D BuildFace()
+    {
+        Array<Texture2D> textures = [];
+
+        foreach (string partName in PartsOrder.Select(v => (string)v))
+        {
+            var config = FindPart(partName);
+            if (config == null)
+                continue;
+
+            if (!config.Visible)
+                continue;
+
+            if (!TexturesByPart.TryGetValue(partName, out var partTextures))
+                continue;
+
+            textures.Add(partTextures[config.Index].Texture);
+        }
+
+        return CombineTextures(textures);
+    }
+
+    public void NextPart(string partName)
+    {
+        var part = FindPart(partName);
+        part?.Next();
+    }
+
+    public void PreviousPart(string partName)
+    {
+        var part = FindPart(partName);
+        part?.Previous();
+    }
+
+    public void SetPartVisibility(string partName, bool visible)
+    {
+        var part = FindPart(partName);
+        if (part != null)
+            part.Visible = visible;
+    }
+
+    public void LoadFaceDefinitionFile(string definitionFile)
+    {
+        PartsOrder = LoadFaceDefinition(definitionFile).TryGetValue("order", out Variant value) ? (Array<Variant>)value : null;
+    }
+
+    public void LoadFaceConfigFile(string configFile)
+    {
+        if (FileAccess.FileExists(configFile))
+        {
+            var file = FileAccess.Open(configFile, FileAccess.ModeFlags.Read);
+            string jsonContent = file.GetAsText();
+            var jsonParser = new Json();
+            Error error = jsonParser.Parse(jsonContent);
+
+            if (error == Error.Ok)
             {
-                string partName = partVariant.ToString();
-                if (FaceParts.ContainsKey(partName))
+                foreach (var kvp in jsonParser.Data.AsGodotDictionary())
                 {
-                    var texturesList = FaceParts[partName];
-                    if (texturesList.Count > 0)
-                    {
-                        var randomIndex = GD.Randi() % texturesList.Count;
-                        RandomFaceParts.Add(texturesList[(int)randomIndex]);
-                        PartIndices[partName] = (int)randomIndex;
-                    }
+                    string key = kvp.Key.ToString();
+                    Parts[key].Index = (int)kvp.Value;
+                    Parts[key].Visible = true;
                 }
+
+                file.Close();
+            }
+            else
+            {
+                GD.Print("Error parsing character JSON: ", error);
+                file.Close();
             }
         }
         else
         {
-            foreach (var kvp in FaceParts)
-            {
-                var texturesList = kvp.Value;
-                if (texturesList.Count > 0)
-                {
-                    var randomIndex = GD.Randi() % texturesList.Count;
-                    RandomFaceParts.Add(texturesList[(int)randomIndex]);
-                    PartIndices[kvp.Key] = (int)randomIndex;
-                }
-            }
+            GD.Print("File not found: ", configFile);
         }
-
-        return RandomFaceParts;
     }
 
-    private string SplitAlpha(string input, out string numberPart)
+    public string[] GetAvailablePartNames()
+    {
+        string[] partNames = [];
+
+        foreach (var partName in PartsOrder.Select(v => (string)v))
+        {
+            if (TexturesByPart.ContainsKey(partName))
+                partNames = [.. partNames, partName];
+        }
+
+        return partNames;
+    }
+
+    private static string SplitAlpha(string input, out string numberPart)
     {
         int index = 0;
         while (index < input.Length && !char.IsDigit(input[index]))
@@ -115,15 +214,13 @@ public class FaceBuilder
     {
         Dictionary<string, int> partCounts = [];
 
-        foreach (var kvp in FaceParts)
-        {
+        foreach (var kvp in TexturesByPart)
             partCounts[kvp.Key] = kvp.Value.Count;
-        }
 
         return partCounts;
     }
 
-    private Dictionary<string, Texture2D> GetTextureFromDirectory(string path)
+    private Dictionary<string, Texture2D> GetTexturesFromDirectory(string path)
     {
         Dictionary<string, Texture2D> textures = [];
 
@@ -159,9 +256,9 @@ public class FaceBuilder
         return textures;
     }
 
-    private Dictionary<string, Array<Texture2D>> GetTexturesByFacePart(Dictionary<string, Texture2D> textures)
+    private Dictionary<string, Array<FaceTextureEntry>> GetTexturesByFacePart(Dictionary<string, Texture2D> textures)
     {
-        Dictionary<string, Array<Texture2D>> faceParts = [];
+        Dictionary<string, Array<FaceTextureEntry>> faceParts = [];
 
         foreach (var kvp in textures)
         {
@@ -170,13 +267,11 @@ public class FaceBuilder
 
             var parts = fileName.Split('_');
 
-            // var partRaw = parts[PartNameIndex];
-            // var partName = SplitAlpha(partRaw, out _);
-
-            var partName = parts[PartNameIndex];
+            var partName = parts[PartNameStartIndex];
+            var partVariationName = parts.Length > PartNameStartIndex + 1 ? parts[PartNameStartIndex + 1] : string.Empty;
             if (!faceParts.ContainsKey(partName))
                 faceParts[partName] = [];
-            faceParts[partName].Add(texture);
+            faceParts[partName].Add(new FaceTextureEntry(texture, partVariationName));
         }
 
         return faceParts;
@@ -216,7 +311,7 @@ public class FaceBuilder
         return jsonData;
     }
 
-    private Texture2D CombineTextures(Array<Texture2D> textures)
+    private static Texture2D CombineTextures(Array<Texture2D> textures)
     {
         if (textures.Count == 0)
             return null;
@@ -254,5 +349,45 @@ public class FaceBuilder
         }
 
         return ImageTexture.CreateFromImage(combinedImage);
+    }
+
+    public bool AreAllPartsVisible()
+    {
+        foreach (var part in Parts.Values)
+        {
+            if (!part.Visible)
+                return false;
+        }
+        return true;
+    }
+
+    public void SetAllPartsVisibility(bool v)
+    {
+        foreach (var part in Parts.Values)
+            part.Visible = v;
+    }
+
+    public bool IsPartVisible(string partName)
+    {
+        if (Parts.TryGetValue(partName, out FacePartConfig value))
+            return value.Visible;
+        return false;
+    }
+
+    public string GetPartVariationName(string partName, int index)
+    {
+        if (TexturesByPart.TryGetValue(partName, out var arr) && index >= 0 && index < arr.Count)
+            return arr[index].VariationName;
+        return string.Empty;
+    }
+
+    internal FaceTextureEntry GetCurrentPartTexture(string partName)
+    {
+        // if (TexturesByPart.TryGetValue(partName, out var arr) && arr.Count > 0)
+        // {
+        //     int currentIndex = Parts[partName].CurrentIndex;
+        //     return arr[currentIndex];
+        // }
+        return null;
     }
 }

@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://c8gdwcegoexx3"]
+
+[ext_resource type="Script" uid="uid://78kyr84edhgb" path="res://addons/FaceBuilder/FacePartRow.cs" id="1_umn11"]
+
+[node name="FacePartRow" type="HBoxContainer" unique_id=1269196701 node_paths=PackedStringArray("CheckBox", "ButtonLeft", "ButtonRight", "LabelPartDefinition", "LabelPartName")]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 31.0
+grow_horizontal = 2
+script = ExtResource("1_umn11")
+CheckBox = NodePath("CheckBox")
+ButtonLeft = NodePath("ButtonLeft")
+ButtonRight = NodePath("ButtonRight")
+LabelPartDefinition = NodePath("LabelPartVariationName")
+LabelPartName = NodePath("LabelPartName")
+
+[node name="CheckBox" type="CheckBox" parent="." unique_id=1261347129]
+layout_mode = 2
+button_pressed = true
+
+[node name="ButtonLeft" type="Button" parent="." unique_id=1928084049]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "<"
+
+[node name="LabelPartVariationName" type="Label" parent="." unique_id=2009500775]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+text = "Label"
+horizontal_alignment = 1
+
+[node name="LabelPartName" type="Label" parent="." unique_id=1512388151]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+text = "Label"
+horizontal_alignment = 1
+
+[node name="ButtonRight" type="Button" parent="." unique_id=132567656]
+layout_mode = 2
+size_flags_horizontal = 3
+text = ">"
